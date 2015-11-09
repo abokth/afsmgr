@@ -1,0 +1,32 @@
+#!/bin/bash
+
+set -e; set -o pipefail
+
+loggedattachids=$( { { fgrep 'volume' /usr/afs/logs/VolserLog || :; } | sed -nre 's,^.* Volser: GetVolInfo: Could not attach volume ([0-9]+) .*$,\1,p; s,^.* DumpVnode: volume ([0-9]+) .*$,\1,p;'; { fgrep 'needs to be salvaged' /usr/afs/logs/FileLog || :; } | sed -nre 's,^.* VAttachVolume: volume /vicep([^/]+)/V0*([0-9]+)\.vol needs to be salvaged.*$,\2,p;'; } | sort -u) || loggedattachids=""
+
+if [[ -n "$loggedattachids" ]]; then
+    attachfailids=""
+    for volid in $loggedattachids; do
+        if env LC_ALL=en_US.UTF-8 vos exa -id "$volid" -localauth -noresolve -encrypt 2>/dev/null | fgrep 'Could not attach volume' >/dev/null; then
+            attachfailids="$attachfailids $volid"
+        fi
+    done
+
+    if [[ -n "$attachfailids" ]]; then
+        volnames=""
+        for volid in $attachfailids; do
+            volname=$(env LC_ALL=en_US.UTF-8 vos listvldb -name "$volid" -localauth -noresolve -quiet -nosort -encrypt|egrep '^[^ ]') || volname=""
+	    if [[ -n "$volname" ]]; then
+	        volnames="$volnames $volname"
+	    else
+	        volnames="$volnames id=$volid"
+	    fi
+        done
+        echo "Could not attach some volumes: $volnames"
+        exit 2
+    fi
+fi
+
+echo "Currently no volume attach errors."
+
+exit 0

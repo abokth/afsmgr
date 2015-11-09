@@ -1,0 +1,43 @@
+#!/bin/bash
+
+set -e; set -o pipefail
+
+loggedattachids=$( { { fgrep 'volume' /usr/afs/logs/VolserLog || :; } | sed -nre 's,^.* Volser: GetVolInfo: Could not attach volume ([0-9]+) .*$,\1,p; s,^.* DumpVnode: volume ([0-9]+) .*$,\1,p;'; { fgrep 'needs to be salvaged' /usr/afs/logs/FileLog || :; } | sed -nre 's,^.* VAttachVolume: volume /vicep([^/]+)/V0*([0-9]+)\.vol needs to be salvaged.*$,\2,p;'; } | sort -u) || loggedattachids=""
+
+declare -i loggedcount=0
+for volid in $loggedattachids; do
+    loggedcount=$((loggedcount+1))
+done
+
+declare -i fixcount=0
+
+t=$(mktemp)
+for volid in $loggedattachids; do
+    echo ""
+    fixcount=$((fixcount+1))
+    echo "=== $volid ($fixcount of $loggedcount) ==="
+    env LC_ALL=en_US.UTF-8 vos exa -id "$volid" -localauth -noresolve -encrypt >"$t" || :
+    cat "$t"
+
+    if ! fgrep -q "Could not attach volume" <"$t"; then
+        echo "Volume is attached."
+        continue
+    fi
+
+    rwid=$(sed -nre <"$t" 's,^ +RWrite: +([0-9]+) .*$,\1,p;') || rwid=""
+    if [[ "$rwid" != "$volid" ]]; then
+        echo >&2 "Not a rw volume. Remove the failing volume and make a new replica. (man bos_salvage)"
+        continue
+    fi
+
+    if env LC_ALL=en_US.UTF-8 vos listvldb -name "$volid" -localauth -noresolve -quiet -nosort -encrypt >"$t"; then
+	serverpart=$(sed -nre <"$t" 's,^ +server ([^ ]+) +partition +/vicep([^ ]+) +RW Site *$,-server \1 -part \2,p;')
+
+	if bos salvage $serverpart -volume $volid -showlog -localauth -orphans attach; then
+	    continue
+	fi
+
+	echo >&2 "Could not find or salvage volume $volid"
+    fi
+done
+

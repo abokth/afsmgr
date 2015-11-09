@@ -1,0 +1,28 @@
+#!/bin/bash
+
+set -e; set -o pipefail
+
+declare -a failedvols
+declare -i exitcode=0
+
+for part in $(vos listpart -localauth -server 127.0.0.1 -noresolve | sed -nre 's,^ +/vicep(.*) *$,\1,p;'); do
+    vos listvol -localauth -server 127.0.0.1 -part $part -noresolve | 
+    sed -nre '/^[^ ]+\.(readonly|backup)/d; s,^([^ ]+) +[0-9].*$,\1,p;' |
+    sort -u |
+    while read volname; do
+        echo "$volname $part"
+        if vos dump -id "$volname" >/dev/null 2>/dev/null -server 127.0.0.1 -part $part -localauth -noresolve; then
+            continue
+        else
+            exitcode=1
+            failedvols+=("$volname")
+        fi
+    done
+done
+
+if (( exitcode > 0 )); then
+    echo "Failed volumes, in need of bos salvage:" "${failedvols[@]}"
+    exit $exitcode
+fi
+
+echo "All volumes ok"
