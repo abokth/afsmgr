@@ -1,5 +1,21 @@
 #!/bin/bash
 
+#  afs-salvagevols - Salvage any volumes which are known to not be attached
+#  Copyright (C) 2015  Alexander Boström, KTH
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 set -e; set -o pipefail
 
 loggedattachids=$( { { fgrep 'volume' /usr/afs/logs/VolserLog || :; } | sed -nre 's,^.* Volser: GetVolInfo: Could not attach volume ([0-9]+) .*$,\1,p; s,^.* DumpVnode: volume ([0-9]+) .*$,\1,p;'; { fgrep 'needs to be salvaged' /usr/afs/logs/FileLog || :; } | sed -nre 's,^.* VAttachVolume: volume /vicep([^/]+)/V0*([0-9]+)\.vol needs to be salvaged.*$,\2,p;'; } | sort -u) || loggedattachids=""
