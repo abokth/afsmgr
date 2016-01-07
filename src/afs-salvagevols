@@ -18,6 +18,8 @@
 
 set -e; set -o pipefail
 
+export PATH=/usr/sbin:/sbin:"$PATH"
+
 loggedattachids=$( { { fgrep 'volume' /usr/afs/logs/VolserLog || :; } | sed -nre 's,^.* Volser: GetVolInfo: Could not attach volume ([0-9]+) .*$,\1,p; s,^.* DumpVnode: volume ([0-9]+) .*$,\1,p;'; { fgrep 'needs to be salvaged' /usr/afs/logs/FileLog || :; } | sed -nre 's,^.* VAttachVolume: volume /vicep([^/]+)/V0*([0-9]+)\.vol needs to be salvaged.*$,\2,p;'; } | sort -u) || loggedattachids=""
 
 declare -i loggedcount=0

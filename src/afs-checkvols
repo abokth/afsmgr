@@ -18,6 +18,8 @@
 
 set -e; set -o pipefail
 
+export PATH=/usr/sbin:/sbin:"$PATH"
+
 declare -a failedvols
 declare -i exitcode=0
 
