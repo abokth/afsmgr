@@ -28,7 +28,7 @@ for part in $(vos listpart -localauth -server 127.0.0.1 -noresolve | sed -nre 's
     sed -nre '/^[^ ]+\.(readonly|backup)/d; s,^([^ ]+) +[0-9].*$,\1,p;' |
     sort -u |
     while read volname; do
-        if vos dump -id "$volname" >/dev/null 2>/dev/null -server 127.0.0.1 -part $part -localauth -noresolve; then
+        if vos dump -id "$volname" -clone >/dev/null 2>/dev/null -server 127.0.0.1 -part $part -localauth -noresolve; then
             continue
         else
             exitcode=1
