@@ -35,6 +35,7 @@ echo >&2 "Checking if VLDB servers are up..."
 while :; do
     fail=""
     for vlserver in $vlservers; do
+	echo >&2 " checking $vlserver ..."
 	timeout 1s bos status -server $vlserver -localauth || fail=yes
 	{ timeout 1s bos status -server $vlserver -localauth | fgrep 'Instance vlserver, currently running normally.'; } || fail=yes
 	timeout 1s rxdebug $vlserver -onlyport 7003 || fail=yes
@@ -53,6 +54,7 @@ echo >&2 "Checking if file servers are up..."
 while :; do
     fail=""
     for fileserver in $fileservers; do
+	echo >&2 " checking $fileserver ..."
 	timeout 1s bos status -server $fileserver -localauth || fail=yes
 	{ timeout 1s bos status -server $vlserver -localauth | fgrep 'Instance fs, currently running normally.'; } || fail=yes
 	timeout 1s rxdebug $fileserver -onlyport 7000 || fail=yes
