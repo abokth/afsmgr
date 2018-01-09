@@ -68,7 +68,12 @@ done
 
 echo >&2 " ok"
 
+echo >&2 "Shutting down AFS..."
 systemctl stop afs-server || :
+echo >&2 " done"
 
+# Give this script time to exit.
+at now <<EOF
+sleep 3
 /sbin/shutdown -r now ' === REBOOTING AFS SERVER === '
-
+EOF
