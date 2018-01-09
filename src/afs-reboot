@@ -28,6 +28,8 @@ export PATH=/usr/sbin:/sbin:"$PATH"
 
 systemctl start afs-server || :
 
+declare -i sleeptime=10
+
 vlservers=$(host -t AFSDB $(cat /usr/vice/etc/ThisCell)|sed -nre 's,^.* AFSDB record . (.*)\.$,\1,p'|sort)
 
 echo >&2 "Checking if VLDB servers are up..."
@@ -42,7 +44,8 @@ while :; do
     done
     if [[ -z "$fail" ]]; then break; fi
     echo >&2 " failed"
-    sleep 10
+    sleep $sleeptime
+    sleeptime=$((sleeptime + 1))
     echo >&2 " trying again"
 done
 
@@ -62,7 +65,8 @@ while :; do
     done
     if [[ -z "$fail" ]]; then break; fi
     echo >&2 " failed"
-    sleep 10
+    sleep $sleeptime
+    sleeptime=$((sleeptime + 1))
     echo >&2 " trying again"
 done
 
