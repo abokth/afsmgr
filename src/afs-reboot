@@ -41,6 +41,7 @@ while :; do
 	timeout 1s rxdebug $server -onlyport 7003 || fail=yes
     done
     if [[ -z "$fail" ]]; then break; fi
+    echo >&2 " failed"
     sleep 10
     echo >&2 " trying again"
 done
@@ -60,6 +61,7 @@ while :; do
 	timeout 1s rxdebug $server -onlyport 7000 || fail=yes
     done
     if [[ -z "$fail" ]]; then break; fi
+    echo >&2 " failed"
     sleep 10
     echo >&2 " trying again"
 done
