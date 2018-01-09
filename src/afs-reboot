@@ -1,0 +1,70 @@
+#!/bin/bash
+
+#  afs-reboot - Reboot an a database or file server
+#  Copyright (C) 2015  Alexander Boström, KTH
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+set -e; set -o pipefail
+
+export PATH=/usr/sbin:/sbin:"$PATH"
+
+# * Start AFS if needed.
+# * Wait until all database servers are up.
+# * Wait until all file servers are up.
+# * Shutdown AFS service gracefully.
+# * Reboot
+
+systemctl start afs-server || :
+
+vlservers=$(host -t AFSDB $(cat /usr/vice/etc/ThisCell)|sed -nre 's,^.* AFSDB record . (.*)\.$,\1,p'|sort)
+
+echo >&2 "Checking if VLDB servers are up..."
+
+while :; do
+    fail=""
+    for vlserver in $vlservers; do
+	bos status -server $vlserver -localauth || fail=yes
+	{ bos status -server $vlserver -localauth | fgrep 'Instance vlserver, currently running normally.'; } || fail=yes
+	timeout 1s rxdebug $vlserver -onlyport 7003 || fail=yes
+    done
+    if [[ -z "$fail" ]]; then break; fi
+    sleep 10
+    echo >&2 " trying again"
+done
+
+echo >&2 " ok"
+
+fileservers=$(vos listaddr -nores -localauth)
+
+echo >&2 "Checking if file servers are up..."
+
+while :; do
+    fail=""
+    for fileserver in $fileservers; do
+	bos status -server $fileserver -localauth || fail=yes
+	{ bos status -server $vlserver -localauth | fgrep 'Instance fs, currently running normally.'; } || fail=yes
+	timeout 1s rxdebug $fileserver -onlyport 7000 || fail=yes
+    done
+    if [[ -z "$fail" ]]; then break; fi
+    sleep 10
+    echo >&2 " trying again"
+done
+
+echo >&2 " ok"
+
+systemctl stop afs-server || :
+
+/sbin/shutdown -r now ' === REBOOTING AFS SERVER === '
+
