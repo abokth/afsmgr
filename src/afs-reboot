@@ -40,7 +40,7 @@ while :; do
 	echo >&2 " checking $server ..."
 	timeout 1s bos status -server $server -localauth || fail=yes
 	{ timeout 1s bos status -server $server -localauth | fgrep 'Instance vlserver, currently running normally.'; } || fail=yes
-	timeout 1s rxdebug $server -onlyport 7003 || fail=yes
+	timeout 1s rxdebug $server -port 7003 || fail=yes
     done
     if [[ -z "$fail" ]]; then break; fi
     echo >&2 " failed"
@@ -61,7 +61,7 @@ while :; do
 	echo >&2 " checking $server ..."
 	timeout 1s bos status -server $server -localauth || fail=yes
 	{ timeout 1s bos status -server $server -localauth | fgrep 'Instance fs, currently running normally.'; } || fail=yes
-	timeout 1s rxdebug $server -onlyport 7000 || fail=yes
+	timeout 1s rxdebug $server -port 7000 || fail=yes
     done
     if [[ -z "$fail" ]]; then break; fi
     echo >&2 " failed"
